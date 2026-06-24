@@ -1,9 +1,19 @@
 resource "aws_s3_bucket" "processed_files" {
   bucket = var.processed_files_bucket_name
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = [bucket]
+  }
 }
 
 resource "aws_s3_bucket" "data_analytics" {
   bucket = var.data_analytics_bucket_name
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = [bucket]
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "processed_files" {
