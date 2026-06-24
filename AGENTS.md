@@ -10,42 +10,52 @@ Two independent components:
 
 ## Critical Non-Obvious Issues
 
-### Snowflake Seeder Bugs
-The `snowflake-seeder/seeder.py` file has several bugs that must be fixed:
-- Line 30: Missing comma after `AMOUNT DECIMAL(6,2)`
-- Line 38: Should be `range(10)` not `for i in 10:`
-- Line 39: Should call function `generate_random_name()` not reference it
-- Line 16: Should call `get_credentials()` not use `get_credentials` as dict
-- Line 51: SQL values need proper quoting - use parameterized queries or f-string with quotes
-
 ### Terraform Deployment
 - **MUST run from `infraestructura/` directory**, not project root
 - Commands: `cd infraestructura && terraform init/plan/apply`
-- S3 bucket names cannot contain underscores (enforced by AWS, noted in variables.tf)
+- S3 bucket names cannot contain underscores (enforced by AWS, noted in `variables.tf`)
+- Two variables have no defaults and **must** be provided: `storage_aws_iam_user_arn` and `storage_aws_external_id` — use `env/test.tfvars` as a template
+- Terraform auto-zips `lambda/lambda_function.py` at plan/apply time via `archive_file` data source — do not manually manage the zip
 
 ### Architecture Decisions
 - SQS visibility timeout (180s) is intentionally 3x Lambda timeout (60s) for retry handling
 - Lambda uses `s3.copy_object()` not `s3.get_object()` + `s3.put_object()` for efficiency
-- Snowflake credentials loaded from environment variables via `utils/credentials.py`
+- Lambda receives **nested** event structure: SQS record body contains JSON-encoded S3 event (double-parse required)
+- Lambda gets `DESTINATION_BUCKET` from environment variable injected by Terraform (not hardcoded)
+- Both S3 buckets use KMS encryption with separate keys defined in `kms.tf`
+
+### Snowflake Seeder
+- Credentials loaded from environment variables via `utils/credentials.py` — returns `None` values silently if env vars missing; `seeder.py` validates them before connecting
+- Custom name/date generators in `utils/` — do not replace with Faker or similar
+- Inserts one row at a time (no batching); 10 rows per run hardcoded in `range(10)`
+- SQL uses f-string interpolation (not parameterized queries) — values must be quoted in the string
 
 ## Commands
 
-### Terraform (from infraestructura/ directory)
+### Terraform (from `infraestructura/` directory)
 ```bash
 cd infraestructura
 terraform init
-terraform plan
-terraform apply
-terraform destroy
+terraform plan -var-file=env/test.tfvars
+terraform apply -var-file=env/test.tfvars
+terraform destroy -var-file=env/test.tfvars
 ```
 
 ### Snowflake Seeder
 ```bash
 cd snowflake-seeder
 pip install -r requirements.txt
-# Set environment variables: SNOWFLAKE_USER, SNOWFLAKE_PASSWORD, SNOWFLAKE_ACCOUNT, 
+# Set env vars: SNOWFLAKE_USER, SNOWFLAKE_PASSWORD, SNOWFLAKE_ACCOUNT,
 # SNOWFLAKE_WAREHOUSE, SNOWFLAKE_DATABASE, SNOWFLAKE_SCHEMA, SNOWFLAKE_ROLE
 python seeder.py
+```
+
+### Tests (from `snowflake-seeder/` directory)
+```bash
+cd snowflake-seeder
+pytest                        # run all tests
+pytest test/test_seeder.py    # run single file
+pytest test/test_seeder.py::TestSeeder::test_main_creates_table_and_inserts_records  # single test
 ```
 
 ## Code Patterns
@@ -53,3 +63,4 @@ python seeder.py
 - Terraform: AWS provider ~> 5.0, Terraform >= 1.5.0
 - Python: Uses boto3 for AWS, snowflake-connector-python for Snowflake
 - Lambda: Python 3.12 runtime, processes SQS batches of S3 events
+- Tests: pytest with `unittest.mock`; `conftest.py` adds parent dir to `sys.path` so `utils/` imports work from `test/`
