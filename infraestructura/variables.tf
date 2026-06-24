@@ -20,4 +20,10 @@ variable "lambda_function_name" {
   description = "Lambda function name."
   type        = string
   default     = "copy-processed-files-to-data-analytics"
+
+variable "snowflake_external_id" {
+  description = "Snowflake external ID for IAM role trust policy. This should be the Snowflake AWS IAM user ARN."
+  type        = string
+  default     = ""
+}
 }
