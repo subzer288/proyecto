@@ -2,7 +2,7 @@ resource "aws_s3_bucket" "processed_files" {
   bucket = var.processed_files_bucket_name
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes  = [bucket]
   }
 }
@@ -11,25 +11,20 @@ resource "aws_s3_bucket" "data_analytics" {
   bucket = var.data_analytics_bucket_name
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
     ignore_changes  = [bucket]
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "processed_files" {
-  bucket                  = aws_s3_bucket.processed_files.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
+resource "aws_s3_bucket_notification" "processed_files_notification" {
+  bucket = aws_s3_bucket.processed_files.id
 
-resource "aws_s3_bucket_public_access_block" "data_analytics" {
-  bucket                  = aws_s3_bucket.data_analytics.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  queue {
+    queue_arn = aws_sqs_queue.processed_files_events.arn
+    events    = ["s3:ObjectCreated:*"]
+  }
+
+  depends_on = [aws_sqs_queue_policy.allow_s3_events]
 }
 
 # Enable server-side encryption for processed-files bucket
