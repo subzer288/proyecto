@@ -10,12 +10,12 @@ resource "aws_iam_role" "snowflake_integration" {
       {
         Effect = "Allow"
         Principal = {
-          AWS = var.snowflake_external_id
+          AWS = local.storage_aws_iam_user_arn
         }
         Action = "sts:AssumeRole"
         Condition = {
           StringEquals = {
-            "sts:ExternalId" = var.snowflake_external_id
+            "sts:ExternalId" = local.storage_aws_external_id
           }
         }
       }
