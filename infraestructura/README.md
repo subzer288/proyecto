@@ -89,10 +89,10 @@ cd infraestructura
 terraform init
 
 # Review planned changes
-terraform plan
+terraform plan -var-file="env/test.tfvars" -out="shared/tfplan"
 
 # Deploy infrastructure
-terraform apply
+terraform apply "shared/tfplan"
 
 # Destroy infrastructure (when needed)
 terraform destroy

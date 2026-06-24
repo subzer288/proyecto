@@ -32,9 +32,10 @@ output "kms_key_sqs_arn" {
 output "kms_key_lambda_env_arn" {
   description = "ARN of KMS key for Lambda environment variables"
   value       = aws_kms_key.lambda_env.arn
+}
 
 output "snowflake_integration_role_arn" {
   description = "ARN of IAM role for Snowflake integration"
   value       = aws_iam_role.snowflake_integration.arn
 }
-}
+

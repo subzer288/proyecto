@@ -1,3 +1,7 @@
+provider "aws" {
+  region = var.aws_region
+}
+
 # Main Terraform Configuration
 # This file serves as the entry point for the infrastructure deployment
 

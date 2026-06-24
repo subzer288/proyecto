@@ -8,14 +8,14 @@ resource "aws_iam_role" "snowflake_integration" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Principal = {
-          AWS = local.storage_aws_iam_user_arn
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": local.storage_aws_iam_user_arn
         }
-        Action = "sts:AssumeRole"
-        Condition = {
-          StringEquals = {
-            "sts:ExternalId" = local.storage_aws_external_id
+        "Action": "sts:AssumeRole",
+        "Condition": {
+          "StringEquals": {
+            "sts:ExternalId": local.storage_aws_external_id
           }
         }
       }
@@ -34,36 +34,8 @@ resource "aws_iam_role_policy" "snowflake_s3_access" {
   name = "snowflake-s3-access-policy"
   role = aws_iam_role.snowflake_integration.id
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowListProcessedFilesBucket"
-        Effect = "Allow"
-        Action = [
-          "s3:ListBucket",
-          "s3:GetBucketLocation"
-        ]
-        Resource = aws_s3_bucket.processed_files.arn
-      },
-      {
-        Sid    = "AllowReadProcessedFiles"
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject",
-          "s3:GetObjectVersion"
-        ]
-        Resource = "${aws_s3_bucket.processed_files.arn}/*"
-      },
-      {
-        Sid    = "AllowKMSDecryptForProcessedFiles"
-        Effect = "Allow"
-        Action = [
-          "kms:Decrypt",
-          "kms:DescribeKey"
-        ]
-        Resource = aws_kms_key.processed_files_bucket.arn
-      }
-    ]
+  policy = templatefile("${path.module}/policies/snowflake-role-policy.json.tfpl", {
+    processed_files_bucket_arn = aws_s3_bucket.processed_files.arn
+    kms_processed_files_arn    = aws_kms_key.processed_files_bucket.arn
   })
 }
