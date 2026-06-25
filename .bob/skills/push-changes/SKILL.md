@@ -11,20 +11,20 @@ You need to follow the next steps:
 ### Workflow
 
 1. Move to folder infraestructura
-2. Run the following script:
+2. Run the following script if at least one .tf file had changed:
 
 \```bash
 terraform test
 \```
 
-3. If all test passed, move to folder snowflake-integration
-4. Run the following script
+3. If all test passed or the terraform test was not executed, move to folder snowflake-integration
+4. Run the following script if at least one .py file had changes:
 
 \```bash
 pytest --cov=. --cov-report=html
 \```
 
-5. If no errors, stage all changes.
+5. If no errors or the pytest was not executed, stage all changes.
 6. Create a detailed commit message and wait for user to approve it.
 7. Commit the changes.
 8. Run the following script to get the origin branch
