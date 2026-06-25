@@ -8,6 +8,7 @@ from utils.credentials import get_credentials
 # Snowflake connection parameters
 
 TABLE_NAME = "BOB_RAW_DATA"
+STAGE_NAME = "SNOWFLAKE_S3_STAGE"
 
 def main():
 
@@ -26,7 +27,10 @@ def main():
         cursor = conn.cursor()
 
         pipeline = f"""
-        COPY INTO @SNOWFLAKE_S3_STAGE 
+          COPY INTO @{STAGE_NAME} FROM (SELECT * FROM {TABLE_NAME} ORDER BY TRANSACTION_DATE ASC )
+          OVERWRITE = TRUE 
+          SINGLE = FALSE 
+          FILE_FORMAT = ( FORMAT_NAME = SNOWFLAKE_S3_FILE_FORMAT_PARQUET)
         """
 
         cursor.execute(pipeline)

@@ -9,6 +9,8 @@
 - Lambda timeout is 60s, SQS visibility timeout is 180s (3x) — intentional for retry handling
 - Terraform native tests live in `infraestructura/tests/main.tftest.hcl`; run with `terraform test` from `infraestructura/`
 - All Terraform tests use `command = plan` — they assert plan-time attributes, not apply-time computed values
+- Terraform tests assert hardcoded resource names (`processed-files-bob`, `data-analytics-bob`, `copy-processed-files-to-data-analytics`) — renaming breaks tests
+- SQS `kms_master_key_id` is unknown at plan time — tests assert `kms_data_key_reuse_period_seconds` instead
 
 ## Architecture Patterns
 
@@ -16,16 +18,19 @@
 - Lambda event is **double-nested**: `event["Records"]` → SQS record → `json.loads(body)["Records"]` → S3 record
 - `DESTINATION_BUCKET` is injected as Lambda environment variable by Terraform, not hardcoded
 - Both S3 buckets have KMS encryption; keys are in `kms.tf`; SQS and Lambda env vars also have separate KMS keys
-- Snowflake credentials loaded via `utils/credentials.py` from environment variables
 - `prevent_destroy` lifecycle is NOT assertable in Terraform tests (not a plan-time attribute)
 
 ## Snowflake Integration Patterns
 
-- `utils/credentials.py` returns `None` silently for missing env vars; `seeder.py` validates explicitly before connecting
+- **Two runnable scripts**: `seeder.py` (inserts 10 rows into `BOB_RAW_DATA`) and `data_pipeline.py` (runs `COPY INTO` to Snowflake S3 stage in Parquet format)
+- `data_pipeline.py` hardcodes `BOBTEST.BOB.SNOWFLAKE_S3_STAGE` and `BOBTEST.BOB.BOB_RAW_DATA` — no env var abstraction for DB/schema names
+- Snowflake MFA is enabled — bypass with `ALTER USER {USER} SET MINS_TO_BYPASS_MFA = 60;` or supply a 6-digit TOTP token before running
+- Credentials are in a `.env` file in `snowflake-integration/` — load it before running scripts
+- `utils/credentials.py` returns `None` silently for missing env vars; both scripts validate explicitly before connecting
 - SQL built via f-string interpolation — string values need to be quoted inside the SQL string
 - Custom name/date generators in `utils/` use static word lists, not external libraries
 - `snowflake-integration/` has a local `.venv` — use it or install from `requirements.txt`
-- `integration.sql` is manual DDL for Snowflake S3 external stage — not run by the seeder
+- `integration.sql` is manual DDL for: table, Parquet file format, S3 storage integration, external stage, grants — run manually, not by the seeder
 
 ## Testing
 
