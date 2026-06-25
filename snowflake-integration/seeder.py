@@ -10,7 +10,7 @@ from utils.date_generator import random_date
 # Snowflake connection parameters
 
 
-TABLE_NAME = "CUSTOMERS"
+TABLE_NAME = "BOB_RAW_DATA"
 
 def main():
 

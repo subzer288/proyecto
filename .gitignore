@@ -4,6 +4,7 @@
 **/shared/*
 *.tfstate
 *.tfstate.*
+*.zip
 
 
 

@@ -4,9 +4,10 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Project Structure
 
-Two independent components:
+Three independent components:
 - `infraestructura/` - Terraform AWS infrastructure (S3→SQS→Lambda pipeline)
-- `snowflake-seeder/` - Python script to seed Snowflake database
+- `snowflake-integration/` - Python script to seed Snowflake database + Snowflake S3 integration DDL
+- `snowflake-integration/integration.sql` - Manual Snowflake DDL for S3 external stage setup
 
 ## Critical Non-Obvious Issues
 
@@ -24,11 +25,12 @@ Two independent components:
 - Lambda gets `DESTINATION_BUCKET` from environment variable injected by Terraform (not hardcoded)
 - Both S3 buckets use KMS encryption with separate keys defined in `kms.tf`
 
-### Snowflake Seeder
+### Snowflake Integration
 - Credentials loaded from environment variables via `utils/credentials.py` — returns `None` values silently if env vars missing; `seeder.py` validates them before connecting
 - Custom name/date generators in `utils/` — do not replace with Faker or similar
 - Inserts one row at a time (no batching); 10 rows per run hardcoded in `range(10)`
 - SQL uses f-string interpolation (not parameterized queries) — values must be quoted in the string
+- Has a local `.venv` in `snowflake-integration/` — activate it or use pip install directly
 
 ## Commands
 
@@ -39,20 +41,21 @@ terraform init
 terraform plan -var-file=env/test.tfvars
 terraform apply -var-file=env/test.tfvars
 terraform destroy -var-file=env/test.tfvars
+terraform test                               # run HCL tests in tests/main.tftest.hcl
 ```
 
-### Snowflake Seeder
+### Snowflake Integration
 ```bash
-cd snowflake-seeder
+cd snowflake-integration
 pip install -r requirements.txt
 # Set env vars: SNOWFLAKE_USER, SNOWFLAKE_PASSWORD, SNOWFLAKE_ACCOUNT,
 # SNOWFLAKE_WAREHOUSE, SNOWFLAKE_DATABASE, SNOWFLAKE_SCHEMA, SNOWFLAKE_ROLE
 python seeder.py
 ```
 
-### Tests (from `snowflake-seeder/` directory)
+### Tests (from `snowflake-integration/` directory)
 ```bash
-cd snowflake-seeder
+cd snowflake-integration
 pytest                        # run all tests
 pytest test/test_seeder.py    # run single file
 pytest test/test_seeder.py::TestSeeder::test_main_creates_table_and_inserts_records  # single test
@@ -60,7 +63,9 @@ pytest test/test_seeder.py::TestSeeder::test_main_creates_table_and_inserts_reco
 
 ## Code Patterns
 
-- Terraform: AWS provider ~> 5.0, Terraform >= 1.5.0
+- Terraform: AWS provider ~> 5.0, Terraform >= 1.5.0; Terraform native tests in `infraestructura/tests/main.tftest.hcl`
+- Terraform tests use `command = plan` (not `apply`) — safe to run without AWS credentials configured
 - Python: Uses boto3 for AWS, snowflake-connector-python for Snowflake
 - Lambda: Python 3.12 runtime, processes SQS batches of S3 events
 - Tests: pytest with `unittest.mock`; `conftest.py` adds parent dir to `sys.path` so `utils/` imports work from `test/`
+- `prevent_destroy` lifecycle meta-argument cannot be tested via Terraform `assert` blocks (not a plan-time attribute)
