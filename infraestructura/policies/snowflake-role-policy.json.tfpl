@@ -2,29 +2,33 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "AllowListProcessedFilesBucket",
-      "Effect": "Allow",
-      "Action": [
-        "s3:ListBucket",
-        "s3:GetBucketLocation"
-      ],
-      "Resource": "${processed_files_bucket_arn}"
-    },
+			"Sid": "AllowListProcessedFilesBucket",
+			"Effect": "Allow",
+			"Resource": "${processed_files_bucket_arn}",
+			"Action": [
+				"s3:ListBucket",
+				"s3:GetBucketLocation"
+			]
+		},
     {
-      "Sid": "AllowReadProcessedFiles",
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetObject",
-        "s3:GetObjectVersion"
-      ],
-      "Resource": "${processed_files_bucket_arn}/*"
-    },
+			"Sid": "AllowReadProcessedFiles",
+			"Effect": "Allow",
+			"Action": [
+				"s3:PutObject",
+				"s3:GetObject",
+				"s3:GetObjectVersion",
+				"s3:DeleteObject",
+				"s3:DeleteObjectVersion"
+			],
+			"Resource": "${processed_files_bucket_arn}/*"
+		},
     {
       "Sid": "AllowKMSDecryptForProcessedFiles",
       "Effect": "Allow",
       "Action": [
         "kms:Decrypt",
-        "kms:DescribeKey"
+				"kms:GenerateDataKey",
+				"kms:DescribeKey"
       ],
       "Resource": "${kms_processed_files_arn}"
     }
