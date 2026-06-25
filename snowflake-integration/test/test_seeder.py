@@ -155,7 +155,7 @@ class TestSeeder:
         
         for field in required_fields:
             # Create credentials dict with one missing field
-            credentials = {
+            credentials: dict[str, str | None] = {
                 'user': 'test_user',
                 'password': 'test_pass',
                 'account': 'test_account',
