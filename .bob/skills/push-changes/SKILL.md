@@ -3,10 +3,9 @@ name: push-changes
 description: Use this skill to Run terraform test and pytest, stage all changes, create a detailed commit message, commit changes and push to github
 ----
 
-## Terraform
+## GITHUB
 
-This skill is used when the user requests a terraform deployment.
-You need to follow the next steps:
+This skill is used when the user request to push changes to github:
 
 ### Workflow
 
